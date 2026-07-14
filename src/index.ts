@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * DEPLOYMENT REMINDER:
+ * ============================================================================
+ * After deploying this backend (e.g., Render, Railway, Vercel):
+ * 1. Update environment variables in your hosting provider:
+ *    - BETTER_AUTH_URL = <your-deployed-backend-url>
+ *    - CLIENT_URL      = <your-deployed-frontend-url>
+ * 2. Go to Google Cloud Console (APIs & Services > Credentials):
+ *    - Add <your-deployed-backend-url>/api/auth/callback/google
+ *      to Authorized Redirect URIs.
+ * ============================================================================
+ */
+
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -15,9 +29,14 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Dynamic CORS origin handling for production & development
+const allowedOrigins = process.env.CLIENT_URL
+  ? [process.env.CLIENT_URL, "http://localhost:3000"]
+  : ["http://localhost:3000"];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
@@ -39,9 +58,7 @@ app.use("/api/items", itemsRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/analytics", analyticsRouter);
 
-// --------------------------------------------------------------------------
-// 1. Catch-all 404 Handler for Unmatched Routes
-// --------------------------------------------------------------------------
+// Catch-all 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     error: "Not Found",
@@ -49,9 +66,7 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// --------------------------------------------------------------------------
-// 2. Centralized 4-argument Error Handling Middleware
-// --------------------------------------------------------------------------
+// Centralized Error Handling Middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error("Centralized Error Logged:", err.stack || err.message);
 

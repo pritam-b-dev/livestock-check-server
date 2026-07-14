@@ -6,7 +6,7 @@ import { usersCollection } from "../lib/db";
 
 const router = Router();
 
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
 // --------------------------------------------------------------------------
 // 1. POST /api/payment/create-checkout-session (Protected: verifyToken)
@@ -24,11 +24,9 @@ router.post(
 
       const priceId = PLAN_PRICE_ID[planId];
       if (!priceId) {
-        return res
-          .status(400)
-          .json({
-            error: `Price ID for plan '${planId}' is not configured in environment variables`,
-          });
+        return res.status(400).json({
+          error: `Price ID for plan '${planId}' is not configured in environment variables`,
+        });
       }
 
       const userId = String(req.user?.id || req.user?.sub || "");
