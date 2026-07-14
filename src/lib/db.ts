@@ -11,26 +11,19 @@ if (!uri) {
   );
 }
 
-const client = new MongoClient(uri);
+export const client = new MongoClient(uri);
 
-let db: Db;
+export const db = client.db("livestock-check");
 
-export let usersCollection: Collection;
-export let sessionCollection: Collection;
-export let itemsCollection: Collection<Item>;
-export let subscriptionsCollection: Collection;
+// Collections
+export const usersCollection: Collection = db.collection("users");
+export const sessionCollection: Collection = db.collection("sessions");
+export const itemsCollection: Collection<Item> = db.collection<Item>("items");
+export const subscriptionsCollection: Collection =
+  db.collection("subscriptions");
 
 export async function connectDB(): Promise<Db> {
-  if (!db) {
-    await client.connect();
-    db = client.db("livestock-check");
-
-    usersCollection = db.collection("users");
-    sessionCollection = db.collection("sessions");
-    itemsCollection = db.collection<Item>("items");
-    subscriptionsCollection = db.collection("subscriptions");
-
-    console.log("Connected to MongoDB database: livestock-check");
-  }
+  await client.connect();
+  console.log("Connected to MongoDB database: livestock-check");
   return db;
 }
