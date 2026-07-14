@@ -1,23 +1,17 @@
-import { Request } from "express";
+import { ObjectId } from "mongodb";
 
-export interface UserPayload {
-  id: string;
-  email: string;
-  role: "admin" | "user" | "manager";
-}
-
-export interface AuthenticatedRequest extends Request {
-  user?: UserPayload;
-}
-
-export interface InventoryItem {
-  _id?: string;
+export interface Item {
+  _id?: ObjectId;
   name: string;
   sku: string;
   category: string;
   quantity: number;
   unitPrice: number;
   location: string;
-  imageUrl: string;
-  createdAt: Date;
+  imageUrl?: string;
+  status: "In Stock" | "Low Stock" | "Out of Stock";
+  ownerId: string;
+  ownerName: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }

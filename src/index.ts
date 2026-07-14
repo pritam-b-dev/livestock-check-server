@@ -5,6 +5,9 @@ import { toNodeHandler } from "better-auth/node";
 import { connectDB } from "./lib/db";
 import { auth } from "./lib/auth";
 
+// Route Imports
+import itemsRouter from "./routes/items.routes";
+
 dotenv.config();
 
 const app = express();
@@ -28,6 +31,9 @@ app.get("/", (req: Request, res: Response) => {
     .status(200)
     .json({ status: "OK", message: "LiveStock Check API Server is running" });
 });
+
+// Mount /api Routes
+app.use("/api/items", itemsRouter);
 
 async function startServer() {
   try {
