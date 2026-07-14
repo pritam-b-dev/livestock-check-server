@@ -79,9 +79,12 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 async function startServer() {
   try {
     await connectDB();
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+
+    if (process.env.NODE_ENV !== "production") {
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    }
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
@@ -89,3 +92,6 @@ async function startServer() {
 }
 
 startServer();
+
+// Export express app for Vercel Serverless
+export default app;
