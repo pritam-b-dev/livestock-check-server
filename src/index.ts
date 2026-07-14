@@ -1,7 +1,9 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { toNodeHandler } from "better-auth/node";
 import { connectDB } from "./lib/db";
+import { auth } from "./lib/auth";
 
 dotenv.config();
 
@@ -15,6 +17,10 @@ app.use(
   }),
 );
 
+// BetterAuth Handler: Mount /api/auth/*
+
+app.all("/api/auth/*", toNodeHandler(auth));
+
 app.use(express.json());
 
 // Health check endpoint
@@ -23,8 +29,6 @@ app.get("/", (req: Request, res: Response) => {
     .status(200)
     .json({ status: "OK", message: "LiveStock Check API Server is running" });
 });
-
-// Mount route files under /api in upcoming prompts
 
 async function startServer() {
   try {
