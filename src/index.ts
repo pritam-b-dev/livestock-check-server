@@ -17,9 +17,8 @@ app.use(
   }),
 );
 
-// BetterAuth Handler: Mount /api/auth/*
-
-app.all("/api/auth/*", toNodeHandler(auth));
+// Express 5 compatible mount for BetterAuth routes
+app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
 
