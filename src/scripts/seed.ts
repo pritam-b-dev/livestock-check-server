@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { ObjectId } from "mongodb";
+import bcrypt from "bcrypt";
 import { connectDB, usersCollection, itemsCollection } from "../lib/db.js";
 import type { Item } from "../types/index.js";
 
@@ -14,8 +14,9 @@ const calculateStatus = (
   return "In Stock";
 };
 
-// 10 Seed items
+// 20 Combined seed items (Livestock + Office & Electronics)
 const rawItemsData = [
+  // --- Livestock Items ---
   {
     name: "Cattle Feed Premium 50kg",
     sku: "FEED-CAT-001",
@@ -116,6 +117,98 @@ const rawItemsData = [
     imageUrl:
       "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&q=80&w=400",
   },
+
+  // --- Office & Electronics Items ---
+  {
+    name: "Dell Latitude 5440 Laptop",
+    sku: "DL-5440",
+    category: "Electronics",
+    quantity: 24,
+    unitPrice: 950,
+    location: "Warehouse A - Aisle 1",
+    imageUrl: "https://picsum.photos/seed/DL-5440/500/400",
+  },
+  {
+    name: "Logitech MX Master 3S Mouse",
+    sku: "LG-MX3S",
+    category: "Electronics",
+    quantity: 60,
+    unitPrice: 35,
+    location: "Warehouse A - Aisle 1",
+    imageUrl: "https://picsum.photos/seed/LG-MX3S/500/400",
+  },
+  {
+    name: "HP LaserJet Pro M404 Printer",
+    sku: "HP-M404",
+    category: "Electronics",
+    quantity: 5,
+    unitPrice: 220,
+    location: "Warehouse A - Aisle 2",
+    imageUrl: "https://picsum.photos/seed/HP-M404/500/400",
+  },
+  {
+    name: "USB-C Docking Station",
+    sku: "DK-USBC1",
+    category: "Electronics",
+    quantity: 0,
+    unitPrice: 75,
+    location: "Warehouse A - Aisle 2",
+    imageUrl: "https://picsum.photos/seed/DK-USBC1/500/400",
+  },
+  {
+    name: "A4 Copy Paper (Ream)",
+    sku: "OF-A4RM",
+    category: "Office Supplies",
+    quantity: 300,
+    unitPrice: 3.5,
+    location: "Main Office Storage",
+    imageUrl: "https://picsum.photos/seed/OF-A4RM/500/400",
+  },
+  {
+    name: "Heavy Duty Stapler",
+    sku: "OF-STPL",
+    category: "Office Supplies",
+    quantity: 45,
+    unitPrice: 8,
+    location: "Main Office Storage",
+    imageUrl: "https://picsum.photos/seed/OF-STPL/500/400",
+  },
+  {
+    name: "Whiteboard 4x6 ft",
+    sku: "OF-WB46",
+    category: "Office Supplies",
+    quantity: 8,
+    unitPrice: 60,
+    location: "Main Office Storage",
+    imageUrl: "https://picsum.photos/seed/OF-WB46/500/400",
+  },
+  {
+    name: "Ergonomic Office Chair",
+    sku: "FN-ERGC",
+    category: "Furniture",
+    quantity: 12,
+    unitPrice: 145,
+    location: "Warehouse B - Floor 1",
+    imageUrl: "https://picsum.photos/seed/FN-ERGC/500/400",
+  },
+  {
+    name: "Standing Desk (Electric)",
+    sku: "FN-SDSK",
+    category: "Furniture",
+    quantity: 3,
+    unitPrice: 380,
+    location: "Warehouse B - Floor 1",
+    imageUrl: "https://picsum.photos/seed/FN-SDSK/500/400",
+  },
+  {
+    name: "Steel Storage Rack",
+    sku: "FN-RACK",
+    category: "Furniture",
+    quantity: 15,
+    unitPrice: 95,
+    location: "Warehouse B - Floor 2",
+    imageUrl: "https://picsum.photos/seed/FN-RACK/500/400",
+  },
 ];
 
 async function seedDatabase() {
@@ -123,7 +216,11 @@ async function seedDatabase() {
     console.log("🌱 Starting seed operation...");
     await connectDB();
 
-    // 1. Ensure Demo User Exists
+    // পাসওয়ার্ড হ্যাশ তৈরি
+    const demoPasswordHash = await bcrypt.hash("Demo@1234", 10);
+    const adminPasswordHash = await bcrypt.hash("Admin@1234", 10);
+
+    // ১. Ensure Demo User Exists & Has Password
     let demoUser = await usersCollection.findOne({
       email: "demo@livestockcheck.com",
     });
@@ -133,6 +230,7 @@ async function seedDatabase() {
       const result = await usersCollection.insertOne({
         name: "Demo Manager",
         email: "demo@livestockcheck.com",
+        password: demoPasswordHash,
         emailVerified: true,
         role: "user",
         plan: "free",
@@ -140,9 +238,14 @@ async function seedDatabase() {
         updatedAt: new Date(),
       });
       demoUser = await usersCollection.findOne({ _id: result.insertedId });
+    } else {
+      await usersCollection.updateOne(
+        { email: "demo@livestockcheck.com" },
+        { $set: { password: demoPasswordHash } },
+      );
     }
 
-    // 2. Ensure Admin User Exists
+    // ২. Ensure Admin User Exists & Has Password
     let adminUser = await usersCollection.findOne({
       email: "admin@livestockcheck.com",
     });
@@ -152,6 +255,7 @@ async function seedDatabase() {
       await usersCollection.insertOne({
         name: "System Admin",
         email: "admin@livestockcheck.com",
+        password: adminPasswordHash,
         emailVerified: true,
         role: "admin",
         plan: "free",
@@ -161,7 +265,7 @@ async function seedDatabase() {
     } else {
       await usersCollection.updateOne(
         { email: "admin@livestockcheck.com" },
-        { $set: { role: "admin" } },
+        { $set: { role: "admin", password: adminPasswordHash } },
       );
     }
 
@@ -172,7 +276,7 @@ async function seedDatabase() {
     const demoUserId = String(demoUser._id || demoUser.id);
     const demoUserName = (demoUser.name as string) || "Demo Manager";
 
-    // 3. Insert items
+    // ৩. Clear old items and insert fresh combined list
     await itemsCollection.deleteMany({});
 
     const formattedItems: Item[] = rawItemsData.map((item) => ({
