@@ -2,8 +2,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { ObjectId } from "mongodb";
-import { connectDB, usersCollection, itemsCollection } from "../lib/db";
-import { Item } from "../types";
+import { connectDB, usersCollection, itemsCollection } from "../lib/db.js";
+import type { Item } from "../types/index.js";
 
 // Helper function: Compute status from quantity
 const calculateStatus = (

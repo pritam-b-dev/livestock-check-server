@@ -1,5 +1,5 @@
 import { Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "./verifyToken";
+import { AuthenticatedRequest } from "./verifyToken.js";
 
 export const verifyRole = (requiredRole: string) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

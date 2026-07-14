@@ -1,6 +1,9 @@
 import { Router, Response } from "express";
-import { itemsCollection, usersCollection } from "../lib/db";
-import { verifyToken, AuthenticatedRequest } from "../middleware/verifyToken";
+import { itemsCollection, usersCollection } from "../lib/db.js";
+import {
+  verifyToken,
+  AuthenticatedRequest,
+} from "../middleware/verifyToken.js";
 
 const router = Router();
 

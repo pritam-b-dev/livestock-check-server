@@ -1,8 +1,11 @@
 import { Router, Response } from "express";
 import { ObjectId } from "mongodb";
-import { stripe, PLAN_PRICE_ID, PlanType } from "../lib/stripe";
-import { verifyToken, AuthenticatedRequest } from "../middleware/verifyToken";
-import { usersCollection } from "../lib/db";
+import { stripe, PLAN_PRICE_ID, PlanType } from "../lib/stripe.js";
+import {
+  verifyToken,
+  AuthenticatedRequest,
+} from "../middleware/verifyToken.js";
+import { usersCollection } from "../lib/db.js";
 
 const router = Router();
 

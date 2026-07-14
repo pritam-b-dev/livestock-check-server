@@ -1,8 +1,11 @@
 import { Router, Response } from "express";
 import { Filter, Sort, ObjectId } from "mongodb";
-import { itemsCollection } from "../lib/db";
-import { verifyToken, AuthenticatedRequest } from "../middleware/verifyToken";
-import { Item } from "../types";
+import { itemsCollection } from "../lib/db.js";
+import {
+  verifyToken,
+  AuthenticatedRequest,
+} from "../middleware/verifyToken.js";
+import type { Item } from "../types/index.js";
 
 const router = Router();
 
@@ -182,11 +185,9 @@ router.post(
       }
 
       if (!sku || !category) {
-        return res
-          .status(400)
-          .json({
-            error: "Missing required fields: sku and category are required.",
-          });
+        return res.status(400).json({
+          error: "Missing required fields: sku and category are required.",
+        });
       }
 
       // Validation 2: Quantity and unitPrice non-negative check
@@ -262,11 +263,9 @@ router.patch(
       }
 
       if (!isOwnerOrAdmin(req.user, existingItem)) {
-        return res
-          .status(403)
-          .json({
-            error: "Forbidden: You do not have permission to update this item",
-          });
+        return res.status(403).json({
+          error: "Forbidden: You do not have permission to update this item",
+        });
       }
 
       const updateData: Partial<Item> = { ...req.body };
@@ -352,11 +351,9 @@ router.delete(
       }
 
       if (!isOwnerOrAdmin(req.user, existingItem)) {
-        return res
-          .status(403)
-          .json({
-            error: "Forbidden: You do not have permission to delete this item",
-          });
+        return res.status(403).json({
+          error: "Forbidden: You do not have permission to delete this item",
+        });
       }
 
       await itemsCollection.deleteOne({ _id: new ObjectId(id) as any });
