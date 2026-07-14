@@ -1,6 +1,7 @@
 import { MongoClient, Db, Collection } from "mongodb";
 import dotenv from "dotenv";
-import type { Item } from "../types";
+import type { Item } from "../types/index.js";
+
 dotenv.config();
 
 const uri = process.env.MONGODB_URI;

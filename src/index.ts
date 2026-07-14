@@ -2,13 +2,13 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { toNodeHandler } from "better-auth/node";
-import { connectDB } from "./lib/db";
-import { auth } from "./lib/auth";
+import { connectDB } from "./lib/db.js";
+import { auth } from "./lib/auth.js";
 
 // Route Imports
-import itemsRouter from "./routes/items.routes";
-import paymentRouter from "./routes/payment.routes";
-import analyticsRouter from "./routes/analytics.routes";
+import itemsRouter from "./routes/items.routes.js";
+import paymentRouter from "./routes/payment.routes.js";
+import analyticsRouter from "./routes/analytics.routes.js";
 
 dotenv.config();
 

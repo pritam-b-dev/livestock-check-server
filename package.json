@@ -2,7 +2,7 @@
   "name": "livestock-check-server",
   "version": "1.0.0",
   "type": "module",
-  "main": "api/index.ts",
+  "main": "api/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
