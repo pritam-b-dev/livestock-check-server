@@ -1,11 +1,12 @@
 import { Router, Response } from "express";
-import { Filter, Sort } from "mongodb";
+import { Filter, Sort, ObjectId } from "mongodb";
 import { itemsCollection } from "../lib/db";
 import { verifyToken, AuthenticatedRequest } from "../middleware/verifyToken";
 import { Item } from "../types";
 
 const router = Router();
 
+// Helper 1: Calculate stock status server-side
 const calculateStatus = (
   quantity: number,
 ): "In Stock" | "Low Stock" | "Out of Stock" => {
@@ -14,64 +15,54 @@ const calculateStatus = (
   return "In Stock";
 };
 
-// POST /api/items
-router.post(
-  "/",
+// Helper 2: Check if current user is owner of the item or has admin role
+const isOwnerOrAdmin = (
+  user: AuthenticatedRequest["user"],
+  item: Item,
+): boolean => {
+  if (!user) return false;
+  const userId = String(user.id || user.sub || "");
+  const isAdmin = user.role === "admin";
+  const isOwner = String(item.ownerId) === userId;
+
+  return isOwner || isAdmin;
+};
+
+// --------------------------------------------------------------------------
+// 1. GET /api/items/mine (Protected: verifyToken)
+// Express route ordering: Specific routes like /mine must come BEFORE /:id
+// --------------------------------------------------------------------------
+router.get(
+  "/mine",
   verifyToken,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { name, sku, category, quantity, unitPrice, location, imageUrl } =
-        req.body;
+      const userId = String(req.user?.id || req.user?.sub || "");
 
-      if (
-        !name ||
-        !sku ||
-        !category ||
-        quantity === undefined ||
-        unitPrice === undefined
-      ) {
-        return res.status(400).json({ error: "Missing required fields" });
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ error: "Unauthorized: Missing user information" });
       }
 
-      const parsedQuantity = Number(quantity);
-      const parsedUnitPrice = Number(unitPrice);
+      const userItems = await itemsCollection
+        .find({ ownerId: userId })
+        .sort({ createdAt: -1 })
+        .toArray();
 
-      // Ensure ownerName is explicitly converted to string
-      const rawOwnerName = req.user?.name || req.user?.email || "Anonymous";
-      const ownerNameStr =
-        typeof rawOwnerName === "string" ? rawOwnerName : String(rawOwnerName);
-
-      const newItem: Omit<Item, "_id"> = {
-        name,
-        sku,
-        category,
-        quantity: parsedQuantity,
-        unitPrice: parsedUnitPrice,
-        location: location || "",
-        imageUrl: imageUrl || "",
-        status: calculateStatus(parsedQuantity),
-        ownerId: String(req.user?.id || req.user?.sub || "unknown"),
-        ownerName: ownerNameStr,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const result = await itemsCollection.insertOne(newItem as Item);
-
-      return res.status(201).json({
-        message: "Item created successfully",
-        item: { _id: result.insertedId, ...newItem },
-      });
+      return res.status(200).json(userItems);
     } catch (error) {
       return res.status(500).json({
-        error: "Failed to create item",
+        error: "Failed to fetch user items",
         details: (error as Error).message,
       });
     }
   },
 );
 
-// GET /api/items
+// --------------------------------------------------------------------------
+// 2. GET /api/items (PUBLIC: Explore Page List)
+// --------------------------------------------------------------------------
 router.get("/", async (req, res: Response) => {
   try {
     const {
@@ -139,5 +130,207 @@ router.get("/", async (req, res: Response) => {
     });
   }
 });
+
+// --------------------------------------------------------------------------
+// 3. GET /api/items/:id (PUBLIC: Full item details)
+// --------------------------------------------------------------------------
+router.get("/:id", async (req, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid Item ID format" });
+    }
+
+    const item = await itemsCollection.findOne({
+      _id: new ObjectId(id) as any,
+    });
+
+    if (!item) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    return res.status(200).json(item);
+  } catch (error) {
+    return res.status(500).json({
+      error: "Failed to fetch item details",
+      details: (error as Error).message,
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 4. POST /api/items (Protected: verifyToken - Create Item)
+// --------------------------------------------------------------------------
+router.post(
+  "/",
+  verifyToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { name, sku, category, quantity, unitPrice, location, imageUrl } =
+        req.body;
+
+      if (
+        !name ||
+        !sku ||
+        !category ||
+        quantity === undefined ||
+        unitPrice === undefined
+      ) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const parsedQuantity = Number(quantity);
+      const parsedUnitPrice = Number(unitPrice);
+
+      const rawOwnerName = req.user?.name || req.user?.email || "Anonymous";
+      const ownerNameStr =
+        typeof rawOwnerName === "string" ? rawOwnerName : String(rawOwnerName);
+
+      const newItem: Omit<Item, "_id"> = {
+        name,
+        sku,
+        category,
+        quantity: parsedQuantity,
+        unitPrice: parsedUnitPrice,
+        location: location || "",
+        imageUrl: imageUrl || "",
+        status: calculateStatus(parsedQuantity),
+        ownerId: String(req.user?.id || req.user?.sub || "unknown"),
+        ownerName: ownerNameStr,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const result = await itemsCollection.insertOne(newItem as Item);
+
+      return res.status(201).json({
+        message: "Item created successfully",
+        item: { _id: result.insertedId, ...newItem },
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: "Failed to create item",
+        details: (error as Error).message,
+      });
+    }
+  },
+);
+
+// --------------------------------------------------------------------------
+// 5. PATCH /api/items/:id (Protected: verifyToken + isOwnerOrAdmin check)
+// --------------------------------------------------------------------------
+router.patch(
+  "/:id",
+  verifyToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Invalid Item ID format" });
+      }
+
+      const existingItem = await itemsCollection.findOne({
+        _id: new ObjectId(id) as any,
+      });
+
+      if (!existingItem) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Check ownership or admin rights
+      if (!isOwnerOrAdmin(req.user, existingItem)) {
+        return res
+          .status(403)
+          .json({
+            error: "Forbidden: You do not have permission to update this item",
+          });
+      }
+
+      const updateData: Partial<Item> = { ...req.body };
+      delete updateData._id;
+      delete updateData.ownerId; // Prevent changing owner
+
+      // Recompute quantity and status if quantity is updated
+      if (updateData.quantity !== undefined) {
+        const newQuantity = Number(updateData.quantity);
+        updateData.quantity = newQuantity;
+        updateData.status = calculateStatus(newQuantity);
+      }
+
+      if (updateData.unitPrice !== undefined) {
+        updateData.unitPrice = Number(updateData.unitPrice);
+      }
+
+      updateData.updatedAt = new Date();
+
+      await itemsCollection.updateOne(
+        { _id: new ObjectId(id) as any },
+        { $set: updateData },
+      );
+
+      const updatedItem = await itemsCollection.findOne({
+        _id: new ObjectId(id) as any,
+      });
+
+      return res.status(200).json({
+        message: "Item updated successfully",
+        item: updatedItem,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: "Failed to update item",
+        details: (error as Error).message,
+      });
+    }
+  },
+);
+
+// --------------------------------------------------------------------------
+// 6. DELETE /api/items/:id (Protected: verifyToken + isOwnerOrAdmin check)
+// --------------------------------------------------------------------------
+router.delete(
+  "/:id",
+  verifyToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Invalid Item ID format" });
+      }
+
+      const existingItem = await itemsCollection.findOne({
+        _id: new ObjectId(id) as any,
+      });
+
+      if (!existingItem) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Check ownership or admin rights
+      if (!isOwnerOrAdmin(req.user, existingItem)) {
+        return res
+          .status(403)
+          .json({
+            error: "Forbidden: You do not have permission to delete this item",
+          });
+      }
+
+      await itemsCollection.deleteOne({ _id: new ObjectId(id) as any });
+
+      return res.status(200).json({
+        message: "Item deleted successfully",
+        deletedId: id,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: "Failed to delete item",
+        details: (error as Error).message,
+      });
+    }
+  },
+);
 
 export default router;
