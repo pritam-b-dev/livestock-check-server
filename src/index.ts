@@ -41,7 +41,7 @@ app.use(
   }),
 );
 
-// BetterAuth Handler (Updated wildcard for Express & Serverless compatibility)
+// BetterAuth Handler
 app.all("/api/auth/*", toNodeHandler(auth));
 
 app.use(express.json());
@@ -76,7 +76,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Local Development Server Starter (Ignored on Vercel)
+// Local Development Server Starter
 if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   connectDB()
     .then(() => {
@@ -84,7 +84,7 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
         console.log(`Server running on port ${PORT}`);
       });
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error("Failed to start local server:", error);
     });
 }
