@@ -1,17 +1,3 @@
-/**
- * ============================================================================
- * DEPLOYMENT REMINDER:
- * ============================================================================
- * After deploying this backend (e.g., Render, Railway, Vercel):
- * 1. Update environment variables in your hosting provider:
- *    - BETTER_AUTH_URL = <your-deployed-backend-url>
- *    - CLIENT_URL      = <your-deployed-frontend-url>
- * 2. Go to Google Cloud Console (APIs & Services > Credentials):
- *    - Add <your-deployed-backend-url>/api/auth/callback/google
- *      to Authorized Redirect URIs.
- * ============================================================================
- */
-
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
