@@ -164,7 +164,7 @@ router.get("/:id", async (req, res: Response) => {
 });
 
 // --------------------------------------------------------------------------
-// 4. POST /api/items (Protected: verifyToken - Create Item)
+// 4. POST /api/items (Protected: verifyToken - Create Item with strict validation)
 // --------------------------------------------------------------------------
 router.post(
   "/",
@@ -174,25 +174,43 @@ router.post(
       const { name, sku, category, quantity, unitPrice, location, imageUrl } =
         req.body;
 
-      if (
-        !name ||
-        !sku ||
-        !category ||
-        quantity === undefined ||
-        unitPrice === undefined
-      ) {
-        return res.status(400).json({ error: "Missing required fields" });
+      // Validation 1: Required fields
+      if (!name || typeof name !== "string" || name.trim() === "") {
+        return res
+          .status(400)
+          .json({ error: "Item name is required and cannot be empty." });
       }
 
+      if (!sku || !category) {
+        return res
+          .status(400)
+          .json({
+            error: "Missing required fields: sku and category are required.",
+          });
+      }
+
+      // Validation 2: Quantity and unitPrice non-negative check
       const parsedQuantity = Number(quantity);
       const parsedUnitPrice = Number(unitPrice);
+
+      if (isNaN(parsedQuantity) || parsedQuantity < 0) {
+        return res
+          .status(400)
+          .json({ error: "Quantity must be a valid non-negative number." });
+      }
+
+      if (isNaN(parsedUnitPrice) || parsedUnitPrice < 0) {
+        return res
+          .status(400)
+          .json({ error: "Unit price must be a valid non-negative number." });
+      }
 
       const rawOwnerName = req.user?.name || req.user?.email || "Anonymous";
       const ownerNameStr =
         typeof rawOwnerName === "string" ? rawOwnerName : String(rawOwnerName);
 
       const newItem: Omit<Item, "_id"> = {
-        name,
+        name: name.trim(),
         sku,
         category,
         quantity: parsedQuantity,
@@ -222,7 +240,7 @@ router.post(
 );
 
 // --------------------------------------------------------------------------
-// 5. PATCH /api/items/:id (Protected: verifyToken + isOwnerOrAdmin check)
+// 5. PATCH /api/items/:id (Protected: verifyToken + isOwnerOrAdmin check + validation)
 // --------------------------------------------------------------------------
 router.patch(
   "/:id",
@@ -255,14 +273,36 @@ router.patch(
       delete updateData._id;
       delete updateData.ownerId;
 
+      // Validation for update fields
+      if (updateData.name !== undefined) {
+        if (
+          typeof updateData.name !== "string" ||
+          updateData.name.trim() === ""
+        ) {
+          return res.status(400).json({ error: "Item name cannot be empty." });
+        }
+        updateData.name = updateData.name.trim();
+      }
+
       if (updateData.quantity !== undefined) {
         const newQuantity = Number(updateData.quantity);
+        if (isNaN(newQuantity) || newQuantity < 0) {
+          return res
+            .status(400)
+            .json({ error: "Quantity must be a valid non-negative number." });
+        }
         updateData.quantity = newQuantity;
         updateData.status = calculateStatus(newQuantity);
       }
 
       if (updateData.unitPrice !== undefined) {
-        updateData.unitPrice = Number(updateData.unitPrice);
+        const newUnitPrice = Number(updateData.unitPrice);
+        if (isNaN(newUnitPrice) || newUnitPrice < 0) {
+          return res
+            .status(400)
+            .json({ error: "Unit price must be a valid non-negative number." });
+        }
+        updateData.unitPrice = newUnitPrice;
       }
 
       updateData.updatedAt = new Date();

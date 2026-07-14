@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { toNodeHandler } from "better-auth/node";
@@ -38,6 +38,28 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/api/items", itemsRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/analytics", analyticsRouter);
+
+// --------------------------------------------------------------------------
+// 1. Catch-all 404 Handler for Unmatched Routes
+// --------------------------------------------------------------------------
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    error: "Not Found",
+    message: `Cannot ${req.method} ${req.originalUrl}`,
+  });
+});
+
+// --------------------------------------------------------------------------
+// 2. Centralized 4-argument Error Handling Middleware
+// --------------------------------------------------------------------------
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error("Centralized Error Logged:", err.stack || err.message);
+
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: err.message || "An unexpected error occurred on the server.",
+  });
+});
 
 async function startServer() {
   try {
