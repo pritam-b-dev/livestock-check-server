@@ -125,14 +125,14 @@ async function seedDatabase() {
 
     // 1. Ensure Demo User Exists
     let demoUser = await usersCollection.findOne({
-      email: "demo@stockify.com",
+      email: "demo@livestockcheck.com",
     });
 
     if (!demoUser) {
       console.log("👤 Creating Demo User directly in DB...");
       const result = await usersCollection.insertOne({
         name: "Demo Manager",
-        email: "demo@stockify.com",
+        email: "demo@livestockcheck.com",
         emailVerified: true,
         role: "user",
         plan: "free",
@@ -144,14 +144,14 @@ async function seedDatabase() {
 
     // 2. Ensure Admin User Exists
     let adminUser = await usersCollection.findOne({
-      email: "admin@stockify.com",
+      email: "admin@livestockcheck.com",
     });
 
     if (!adminUser) {
       console.log("👑 Creating Admin User directly in DB...");
       await usersCollection.insertOne({
         name: "System Admin",
-        email: "admin@stockify.com",
+        email: "admin@livestockcheck.com",
         emailVerified: true,
         role: "admin",
         plan: "free",
@@ -160,7 +160,7 @@ async function seedDatabase() {
       });
     } else {
       await usersCollection.updateOne(
-        { email: "admin@stockify.com" },
+        { email: "admin@livestockcheck.com" },
         { $set: { role: "admin" } },
       );
     }
