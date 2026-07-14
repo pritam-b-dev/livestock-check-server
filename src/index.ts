@@ -7,6 +7,7 @@ import { auth } from "./lib/auth";
 
 // Route Imports
 import itemsRouter from "./routes/items.routes";
+import paymentRouter from "./routes/payment.routes";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.get("/", (req: Request, res: Response) => {
 
 // Mount /api Routes
 app.use("/api/items", itemsRouter);
+app.use("/api/payment", paymentRouter);
 
 async function startServer() {
   try {

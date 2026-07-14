@@ -1,30 +1,71 @@
-import { Router } from "express";
-import { stripe } from "../lib/stripe";
-import { verifyToken } from "../middleware/verifyToken";
+import { Router, Response } from "express";
+import { stripe, PLAN_PRICE_ID, PlanType } from "../lib/stripe";
+import { verifyToken, AuthenticatedRequest } from "../middleware/verifyToken";
 
 const router = Router();
 
-router.post("/create-checkout-session", verifyToken, async (req, res) => {
-  const { plan } = req.body; // 'growth' or 'business'
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
-  const priceId =
-    plan === "business"
-      ? process.env.STRIPE_BUSINESS_PRICE_ID
-      : process.env.STRIPE_GROWTH_PRICE_ID;
+// --------------------------------------------------------------------------
+// POST /api/payment/create-checkout-session (Protected: verifyToken)
+// --------------------------------------------------------------------------
+router.post(
+  "/create-checkout-session",
+  verifyToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { planId } = req.body as { planId: PlanType };
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: "subscription",
-      success_url: `${process.env.CLIENT_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/pricing`,
-    });
+      if (!planId || !PLAN_PRICE_ID[planId]) {
+        return res.status(400).json({ error: "Invalid or missing planId" });
+      }
 
-    res.json({ url: session.url });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
+      const priceId = PLAN_PRICE_ID[planId];
+      if (!priceId) {
+        return res
+          .status(400)
+          .json({
+            error: `Price ID for plan '${planId}' is not configured in environment variables`,
+          });
+      }
+
+      const userId = String(req.user?.id || req.user?.sub || "");
+
+      const userEmail = req.user?.email ? String(req.user.email) : undefined;
+
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ error: "Unauthorized: Missing user information" });
+      }
+
+      // Create Stripe Checkout Session
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        customer_email: userEmail,
+        success_url: `${CLIENT_URL}/pricing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${CLIENT_URL}/pricing/cancel`,
+        metadata: {
+          userId,
+          planId,
+        },
+      });
+
+      return res.status(200).json({ url: session.url });
+    } catch (error) {
+      return res.status(500).json({
+        error: "Failed to create Stripe checkout session",
+        details: (error as Error).message,
+      });
+    }
+  },
+);
 
 export default router;
