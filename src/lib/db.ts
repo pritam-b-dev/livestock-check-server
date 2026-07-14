@@ -1,28 +1,33 @@
-import { MongoClient, Db } from "mongodb";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { MongoClient, Db, Collection } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
+
 if (!uri) {
-  throw new Error("Please define the MONGODB_URI environment variable");
+  throw new Error(
+    "Please define the MONGODB_URI environment variable inside .env",
+  );
 }
 
 const client = new MongoClient(uri);
-let dbInstance: Db;
+
+let db: Db;
+
+export let usersCollection: Collection;
+export let sessionCollection: Collection;
+export let itemsCollection: Collection;
+export let subscriptionsCollection: Collection;
 
 export async function connectDB(): Promise<Db> {
-  if (dbInstance) return dbInstance;
+  if (!db) {
+    await client.connect();
+    db = client.db("livestock-check");
 
-  await client.connect();
-  console.log("Connected to LiveStock Check MongoDB database");
-  dbInstance = client.db();
-  return dbInstance;
-}
+    usersCollection = db.collection("users");
+    sessionCollection = db.collection("sessions");
+    itemsCollection = db.collection("items");
+    subscriptionsCollection = db.collection("subscriptions");
 
-export function getDB(): Db {
-  if (!dbInstance) {
-    throw new Error("Database not initialized. Call connectDB first.");
+    console.log("Connected to MongoDB database: livestock-check");
   }
-  return dbInstance;
+  return db;
 }
