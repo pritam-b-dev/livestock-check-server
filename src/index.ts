@@ -28,7 +28,7 @@ app.use(
 );
 
 // BetterAuth Handler
-app.all("/api/auth/*", toNodeHandler(auth));
+app.use("/api/auth", toNodeHandler(auth));
 
 app.use(express.json());
 
