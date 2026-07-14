@@ -28,9 +28,13 @@ const isOwnerOrAdmin = (
   return isOwner || isAdmin;
 };
 
+// Helper 3: Safely extract single string ID from Express req.params
+const getIdParam = (idParam: string | string[]): string => {
+  return Array.isArray(idParam) ? idParam[0] : idParam;
+};
+
 // --------------------------------------------------------------------------
 // 1. GET /api/items/mine (Protected: verifyToken)
-// Express route ordering: Specific routes like /mine must come BEFORE /:id
 // --------------------------------------------------------------------------
 router.get(
   "/mine",
@@ -136,7 +140,7 @@ router.get("/", async (req, res: Response) => {
 // --------------------------------------------------------------------------
 router.get("/:id", async (req, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = getIdParam(req.params.id);
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: "Invalid Item ID format" });
@@ -225,7 +229,7 @@ router.patch(
   verifyToken,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { id } = req.params;
+      const id = getIdParam(req.params.id);
 
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: "Invalid Item ID format" });
@@ -239,7 +243,6 @@ router.patch(
         return res.status(404).json({ error: "Item not found" });
       }
 
-      // Check ownership or admin rights
       if (!isOwnerOrAdmin(req.user, existingItem)) {
         return res
           .status(403)
@@ -250,9 +253,8 @@ router.patch(
 
       const updateData: Partial<Item> = { ...req.body };
       delete updateData._id;
-      delete updateData.ownerId; // Prevent changing owner
+      delete updateData.ownerId;
 
-      // Recompute quantity and status if quantity is updated
       if (updateData.quantity !== undefined) {
         const newQuantity = Number(updateData.quantity);
         updateData.quantity = newQuantity;
@@ -295,7 +297,7 @@ router.delete(
   verifyToken,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { id } = req.params;
+      const id = getIdParam(req.params.id);
 
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: "Invalid Item ID format" });
@@ -309,7 +311,6 @@ router.delete(
         return res.status(404).json({ error: "Item not found" });
       }
 
-      // Check ownership or admin rights
       if (!isOwnerOrAdmin(req.user, existingItem)) {
         return res
           .status(403)
