@@ -31,4 +31,11 @@ export const auth = betterAuth({
   },
   plugins: [jwt()],
   trustedOrigins: [process.env.CLIENT_URL!, "http://localhost:3000"],
+
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
+    },
+  },
 });
