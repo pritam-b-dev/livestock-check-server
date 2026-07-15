@@ -29,7 +29,20 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [jwt()],
+  plugins: [
+    jwt({
+      jwt: {
+        expirationTime: "7d",
+        definePayload: ({ user }) => ({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: (user as { role?: string }).role,
+          plan: (user as { plan?: string }).plan,
+        }),
+      },
+    }),
+  ],
   trustedOrigins: [process.env.CLIENT_URL!, "http://localhost:3000"],
 
   advanced: {
