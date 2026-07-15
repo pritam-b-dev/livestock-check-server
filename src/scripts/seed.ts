@@ -227,8 +227,8 @@ async function seedDatabase() {
       imageUrl: item.imageUrl,
       status: calculateStatus(item.quantity),
 
-      ownerId: "seed-user",
-      ownerName: "System Seed",
+      ownerId: "6a56d0d7b2b41c1222db5577",
+      ownerName: "Demo Manager",
 
       createdAt: new Date(),
       updatedAt: new Date(),

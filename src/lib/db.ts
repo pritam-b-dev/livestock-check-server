@@ -17,7 +17,7 @@ export const client = new MongoClient(uri);
 export const db = client.db("livestock-check");
 
 // Collections
-export const usersCollection: Collection = db.collection("users");
+export const usersCollection: Collection = db.collection("user");
 export const sessionCollection: Collection = db.collection("sessions");
 export const itemsCollection: Collection<Item> = db.collection<Item>("items");
 export const subscriptionsCollection: Collection =
