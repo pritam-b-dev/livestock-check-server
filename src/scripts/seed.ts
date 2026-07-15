@@ -1,8 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
-
-import bcrypt from "bcrypt";
-import { connectDB, usersCollection, itemsCollection } from "../lib/db.js";
+import { connectDB, itemsCollection } from "../lib/db.js";
 import type { Item } from "../types/index.js";
 
 // Helper function: Compute status from quantity
@@ -216,66 +214,6 @@ async function seedDatabase() {
     console.log("🌱 Starting seed operation...");
     await connectDB();
 
-    // পাসওয়ার্ড হ্যাশ তৈরি
-    const demoPasswordHash = await bcrypt.hash("Demo@1234", 10);
-    const adminPasswordHash = await bcrypt.hash("Admin@1234", 10);
-
-    // ১. Ensure Demo User Exists & Has Password
-    let demoUser = await usersCollection.findOne({
-      email: "demo@livestockcheck.com",
-    });
-
-    if (!demoUser) {
-      console.log("👤 Creating Demo User directly in DB...");
-      const result = await usersCollection.insertOne({
-        name: "Demo Manager",
-        email: "demo@livestockcheck.com",
-        password: demoPasswordHash,
-        emailVerified: true,
-        role: "user",
-        plan: "free",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      demoUser = await usersCollection.findOne({ _id: result.insertedId });
-    } else {
-      await usersCollection.updateOne(
-        { email: "demo@livestockcheck.com" },
-        { $set: { password: demoPasswordHash } },
-      );
-    }
-
-    // ২. Ensure Admin User Exists & Has Password
-    let adminUser = await usersCollection.findOne({
-      email: "admin@livestockcheck.com",
-    });
-
-    if (!adminUser) {
-      console.log("👑 Creating Admin User directly in DB...");
-      await usersCollection.insertOne({
-        name: "System Admin",
-        email: "admin@livestockcheck.com",
-        password: adminPasswordHash,
-        emailVerified: true,
-        role: "admin",
-        plan: "free",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } else {
-      await usersCollection.updateOne(
-        { email: "admin@livestockcheck.com" },
-        { $set: { role: "admin", password: adminPasswordHash } },
-      );
-    }
-
-    if (!demoUser) {
-      throw new Error("Failed to retrieve or create Demo User.");
-    }
-
-    const demoUserId = String(demoUser._id || demoUser.id);
-    const demoUserName = (demoUser.name as string) || "Demo Manager";
-
     // ৩. Clear old items and insert fresh combined list
     await itemsCollection.deleteMany({});
 
@@ -288,17 +226,17 @@ async function seedDatabase() {
       location: item.location,
       imageUrl: item.imageUrl,
       status: calculateStatus(item.quantity),
-      ownerId: demoUserId,
-      ownerName: demoUserName,
+
+      ownerId: "seed-user",
+      ownerName: "System Seed",
+
       createdAt: new Date(),
       updatedAt: new Date(),
     }));
 
     const result = await itemsCollection.insertMany(formattedItems);
 
-    console.log(
-      `🎉 Success: Seeded ${result.insertedCount} items linked to user (${demoUserName})!`,
-    );
+    console.log(`🎉 Successfully seeded ${result.insertedCount} items.`);
     console.log("🚪 Closing process...");
     process.exit(0);
   } catch (error) {
