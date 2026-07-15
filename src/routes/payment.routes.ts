@@ -6,6 +6,7 @@ import {
   AuthenticatedRequest,
 } from "../middleware/verifyToken.js";
 import { usersCollection } from "../lib/db.js";
+import { itemsCollection } from "../lib/db.js";
 
 const router = Router();
 
@@ -120,7 +121,9 @@ router.post(
 
         return res.status(200).json({
           success: true,
-          plan: newPlan,
+          data: {
+            planName: newPlan,
+          },
         });
       } else {
         return res.status(400).json({
@@ -132,6 +135,51 @@ router.post(
       return res.status(500).json({
         error: "Failed to confirm payment",
         details: (error as Error).message,
+      });
+    }
+  },
+);
+
+router.get(
+  "/subscription",
+  verifyToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = String(req.user?.id || req.user?.sub || "");
+
+      const user = await usersCollection.findOne({
+        _id: new ObjectId(userId),
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          error: "User not found",
+        });
+      }
+
+      const currentUsage = await itemsCollection.countDocuments({
+        ownerId: userId,
+      });
+
+      const limits = {
+        free: 20,
+        growth: 100,
+        business: Infinity,
+      };
+
+      const plan = user.plan || "free";
+
+      return res.json({
+        data: {
+          planName: plan,
+          status: "active",
+          itemLimit: limits[plan as keyof typeof limits] ?? 20,
+          currentUsage,
+        },
+      });
+    } catch (err) {
+      return res.status(500).json({
+        error: (err as Error).message,
       });
     }
   },
