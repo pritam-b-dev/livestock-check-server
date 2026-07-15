@@ -139,7 +139,7 @@ router.post(
     }
   },
 );
-
+//GET subscription
 router.get(
   "/subscription",
   verifyToken,

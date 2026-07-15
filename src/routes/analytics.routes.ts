@@ -122,12 +122,14 @@ router.get(
         totalValueResult.length > 0 ? totalValueResult[0].totalValue : 0;
 
       return res.status(200).json({
-        totalUsers,
-        totalItems,
-        totalValue,
-        lowStockCount,
-        byCategory,
-        addedOverTime,
+        data: {
+          totalUsers,
+          totalItems,
+          totalValue,
+          lowStockAlerts: lowStockCount,
+          byCategory,
+          addedOverTime,
+        },
       });
     } catch (error) {
       return res.status(500).json({
