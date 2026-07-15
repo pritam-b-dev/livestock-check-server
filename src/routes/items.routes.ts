@@ -371,4 +371,31 @@ router.delete(
   },
 );
 
+// --------------------------------------------------------------------------
+// 1b. GET /api/items/admin/all (Protected: verifyToken + admin only)
+// --------------------------------------------------------------------------
+router.get(
+  "/admin/all",
+  verifyToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Forbidden: Admins only" });
+      }
+
+      const allItems = await itemsCollection
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      return res.status(200).json(allItems);
+    } catch (error) {
+      return res.status(500).json({
+        error: "Failed to fetch all items",
+        details: (error as Error).message,
+      });
+    }
+  },
+);
+
 export default router;
